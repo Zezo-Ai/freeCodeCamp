@@ -14,6 +14,7 @@ import { ns } from './action-types';
 
 export const challengeFilesSelector = state => state[ns].challengeFiles;
 export const challengeMetaSelector = state => state[ns].challengeMeta;
+export const challengeHooksSelector = state => state[ns].challengeHooks;
 export const challengeTestsSelector = state => state[ns].challengeTests;
 export const consoleOutputSelector = state => state[ns].consoleOut;
 export const completedChallengesIdsSelector = createSelector(
@@ -90,7 +91,8 @@ export const challengeDataSelector = state => {
     challengeType === challengeTypes.python ||
     challengeType === challengeTypes.lab ||
     challengeType === challengeTypes.js ||
-    challengeType === challengeTypes.jsProject
+    challengeType === challengeTypes.jsProject ||
+    challengeType === challengeTypes.jsLab
   ) {
     const { required = [], template = '' } = challengeMetaSelector(state);
     challengeData = {
