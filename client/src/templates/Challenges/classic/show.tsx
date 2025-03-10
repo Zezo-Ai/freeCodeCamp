@@ -45,6 +45,7 @@ import {
   executeChallenge,
   initConsole,
   initTests,
+  initHooks,
   initVisibleEditors,
   previewMounted,
   updateChallengeMeta,
@@ -63,7 +64,7 @@ import { preloadPage } from '../../../../utils/gatsby/page-loading';
 import envData from '../../../../config/env.json';
 import ToolPanel from '../components/tool-panel';
 import { getChallengePaths } from '../utils/challenge-paths';
-import { isJavaScriptChallenge } from '../utils/build';
+import { challengeHasPreview, isJavaScriptChallenge } from '../utils/build';
 import { XtermTerminal } from './xterm';
 import MultifileEditor from './multifile-editor';
 import DesktopLayout from './desktop-layout';
@@ -86,6 +87,7 @@ const mapDispatchToProps = (dispatch: Dispatch) =>
       createFiles,
       initConsole,
       initTests,
+      initHooks,
       initVisibleEditors,
       updateChallengeMeta,
       challengeMounted,
@@ -108,6 +110,7 @@ interface ShowClassicProps extends Pick<PreviewProps, 'previewMounted'> {
   challengeFiles: ChallengeFiles;
   initConsole: (arg0: string) => void;
   initTests: (tests: Test[]) => void;
+  initHooks: (hooks?: { beforeAll: string }) => void;
   initVisibleEditors: () => void;
   isChallengeCompleted: boolean;
   output: string[];
@@ -158,6 +161,7 @@ const handleContentWidgetEvents = (e: MouseEvent | TouchEvent): void => {
 };
 
 const StepPreview = ({
+  dimensions,
   disableIframe,
   previewMounted,
   challengeType,
@@ -165,10 +169,11 @@ const StepPreview = ({
 }: Pick<PreviewProps, 'disableIframe' | 'previewMounted'> & {
   challengeType: number;
   xtermFitRef: React.MutableRefObject<FitAddon | null>;
+  dimensions?: { width: number; height: number };
 }) => {
   return challengeType === challengeTypes.python ||
     challengeType === challengeTypes.multifilePythonCertProject ? (
-    <XtermTerminal xtermFitRef={xtermFitRef} />
+    <XtermTerminal dimensions={dimensions} xtermFitRef={xtermFitRef} />
   ) : (
     <Preview disableIframe={disableIframe} previewMounted={previewMounted} />
   );
@@ -191,6 +196,7 @@ function ShowClassic({
         title,
         description,
         instructions,
+        hooks,
         fields: { tests, blockName },
         challengeType,
         hasEditableBoundaries,
@@ -214,6 +220,7 @@ function ShowClassic({
   challengeMounted,
   initConsole,
   initTests,
+  initHooks,
   initVisibleEditors,
   updateChallengeMeta,
   openModal,
@@ -242,17 +249,7 @@ function ShowClassic({
   )}: ${title}`;
   const windowTitle = `${blockNameTitle} | freeCodeCamp.org`;
   const openConsole = isJavaScriptChallenge({ challengeType });
-  // TODO: show preview should NOT be computed like this. That determination is
-  // made during the build (at least twice!). It should be either a prop or
-  // computed from challengeType
-  const showPreview = [
-    challengeTypes.html,
-    challengeTypes.modern,
-    challengeTypes.multifileCertProject,
-    challengeTypes.multifilePythonCertProject,
-    challengeTypes.python,
-    challengeTypes.lab
-  ].includes(challengeType);
+  const hasPreview = challengeHasPreview({ challengeType });
   const getLayoutState = () => {
     const reflexLayout = store.get(REFLEX_LAYOUT) as ReflexLayout | null;
 
@@ -367,6 +364,7 @@ function ShowClassic({
     );
 
     initTests(tests);
+    initHooks(hooks);
 
     initVisibleEditors();
 
@@ -463,7 +461,7 @@ function ShowClassic({
               isUsingKeyboardInTablist: usingKeyboardInTablist
             })}
             hasEditableBoundaries={hasEditableBoundaries}
-            hasPreview={showPreview}
+            hasPreview={hasPreview}
             instructions={renderInstructionsPanel({
               toolPanel: null,
               hasDemo: demoType === 'onClick'
@@ -498,7 +496,7 @@ function ShowClassic({
               isUsingKeyboardInTablist: usingKeyboardInTablist
             })}
             hasEditableBoundaries={hasEditableBoundaries}
-            hasPreview={showPreview}
+            hasPreview={hasPreview}
             instructions={renderInstructionsPanel({
               toolPanel: <ToolPanel guideUrl={guideUrl} videoUrl={videoUrl} />,
               hasDemo: demoType === 'onClick'
@@ -564,6 +562,9 @@ export const query = graphql`
         superBlock
         translationPending
         forumTopicId
+        hooks {
+          beforeAll
+        }
         fields {
           blockName
           slug
